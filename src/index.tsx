@@ -9,20 +9,18 @@ import CameraControl from "./components/CameraControl";
 
 import config from "./config";
 
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
+const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
-  <React.StrictMode>
-    <Canvas
-      shadows
-      style={{ width: "100vw", height: "100vh" }}
-      camera={{ position: config.startCameraPosition.clone() }}
-    >
-      <App />
-      <CameraControl />
-    </Canvas>
-  </React.StrictMode>
+    <React.StrictMode>
+        <Canvas
+            shadows
+            style={{ width: "100vw", height: "100vh" }}
+            camera={{ position: config.startCameraPosition.clone() }}
+        >
+            <App />
+            <CameraControl />
+        </Canvas>
+    </React.StrictMode>,
 );
 
 // If you want to start measuring performance in your app, pass a function
