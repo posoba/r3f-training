@@ -1,15 +1,27 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+
+import { Canvas } from "@react-three/fiber";
+import CameraControl from "./components/CameraControl";
+
+import config from "./config";
 
 const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
+  document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <Canvas
+      shadows
+      style={{ width: "100vw", height: "100vh" }}
+      camera={{ position: config.startCameraPosition.clone() }}
+    >
+      <App />
+      <CameraControl />
+    </Canvas>
   </React.StrictMode>
 );
 
