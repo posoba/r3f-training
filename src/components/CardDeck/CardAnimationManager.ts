@@ -119,7 +119,7 @@ class CardAnimationManager {
             this.springApi.start({
                 from: { progress: 0 },
                 to: { progress: 1 },
-                config: { duration: (cardsToHide.length - 1) * 50 },
+                config: { duration: cardsToHide.length * 50 },
                 onChange,
                 onResolve: resolve,
             });

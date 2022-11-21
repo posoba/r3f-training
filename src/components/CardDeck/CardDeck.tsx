@@ -61,6 +61,8 @@ function CardDeck() {
 
     return (
         <group
+            onPointerEnter={() => (document.body.style.cursor = "pointer")}
+            onPointerLeave={() => (document.body.style.cursor = "default")}
             position={new Vector3(0.2, 0.006, -0.2)}
             onClick={(evt) => {
                 evt.stopPropagation();
