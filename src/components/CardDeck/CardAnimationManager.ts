@@ -55,7 +55,7 @@ class CardAnimationManager {
 
     putCardOnTable(card: Card) {
         return new Promise((resolve) => {
-            card.rotation.y = -Math.PI * 1.005;
+            card.rotation.y = -Math.PI * 1.01;
             const path = new Path();
             path.moveTo(this.cardShowPosition.x, this.cardShowPosition.y);
             path.quadraticCurveTo(
@@ -95,6 +95,7 @@ class CardAnimationManager {
                 card.position.copy(card.startPosition);
                 card.rotation.y = 0;
                 card.showed = false;
+                card.children[0].position.z = config.cardThickness / 2;
             });
 
             resolve();
@@ -129,8 +130,12 @@ class CardAnimationManager {
     private putCardsOnDeck(cardsToHide: Card[]) {
         return new Promise((resolve) => {
             const lastCard = cardsToHide[0];
-            cardsToHide.forEach((card) => (card.visible = false));
-            lastCard.visible = true;
+            cardsToHide.forEach((card) => {
+                if (card !== lastCard) {
+                    card.visible = false;
+                    card.children[0].position.z = 0;
+                }
+            });
 
             lastCard.scale.z = cardsToHide.length;
             const offset = (cardsToHide.length * config.cardThickness) / 2;

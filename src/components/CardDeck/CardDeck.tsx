@@ -5,6 +5,8 @@ import CardMesh, { Card } from "./CardMesh";
 import config from "../../config";
 import CardAnimationManager from "./CardAnimationManager";
 
+import PlayButton from "./PlayButton";
+
 interface CardData {
     index: number;
     colors: number[];
@@ -20,6 +22,8 @@ const cardsData: CardData[] = new Array(config.cardsQuantity).fill(0).map((el, i
     };
 });
 
+const deckPosition = new Vector3(0.2, 0.006, -0.2);
+
 function CardDeck() {
     const cardRefs: CardRefs = useMemo(() => ({}), []);
     const springApi = useSpring({}, [])[1];
@@ -31,6 +35,7 @@ function CardDeck() {
         (card: Card, index: number) => {
             if (!card || cardRefs[index]) return;
             card.rotation.x = Math.PI / 2;
+            card.rotation.z = Math.PI;
             card.position.y = index * config.cardThickness;
             card.index = index;
             card.startPosition = card.position.clone();
@@ -57,23 +62,29 @@ function CardDeck() {
         setDeckTopCardIndex(cardsData.length - 1);
     }, [cardRefs, cardAnimationManager]);
 
+    const onClick = useCallback(() => {
+        if (!canPlay) return;
+        setCanPlay(false);
+        const topCard = cardRefs[deckTopCardIndex];
+        topCard ? showCard(topCard) : hideDeck();
+    }, [deckTopCardIndex, cardRefs, canPlay, hideDeck, showCard]);
+
     return (
-        <group
-            onPointerEnter={() => (document.body.style.cursor = "pointer")}
-            onPointerLeave={() => (document.body.style.cursor = "default")}
-            position={new Vector3(0.2, 0.006, -0.2)}
-            onClick={(evt) => {
-                evt.stopPropagation();
-                if (!canPlay) return;
-                setCanPlay(false);
-                const isCardShowed = (evt.object as Card).showed;
-                isCardShowed ? hideDeck() : showCard(cardRefs[deckTopCardIndex]);
-            }}
-        >
-            {cardsData.map(({ index, colors }) => (
-                <CardMesh key={index} colors={colors} ref={(card: Card) => prepareCardAndAddRef(card, index)} />
-            ))}
-        </group>
+        <>
+            <group position={deckPosition}>
+                {cardsData.map(({ index, colors }) => (
+                    <CardMesh
+                        isTopCard={index === deckTopCardIndex}
+                        index={index}
+                        key={index}
+                        colors={colors}
+                        ref={(card: Card) => prepareCardAndAddRef(card, index)}
+                    />
+                ))}
+            </group>
+
+            <PlayButton onClick={onClick} />
+        </>
     );
 }
 

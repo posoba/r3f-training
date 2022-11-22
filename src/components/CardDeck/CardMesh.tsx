@@ -1,5 +1,6 @@
 import { forwardRef, Ref, useMemo } from "react";
 import { BoxGeometry, MeshStandardMaterial, Mesh, Vector3 } from "three";
+import { Html } from "@react-three/drei";
 
 import config from "../../config";
 import backShaderMaterial from "./backShaderMaterial";
@@ -13,14 +14,17 @@ export interface Card extends Mesh {
 
 interface Props {
     colors: number[];
+    isTopCard: boolean;
+    index: number;
 }
 
 const geometry = new BoxGeometry(0.15, 0.2, config.cardThickness);
 const borderMaterial = new MeshStandardMaterial({
     color: 0xeeeeee,
 });
+const textPosition = new Vector3(0, 0, config.cardThickness / 2);
 
-function CardMesh({ colors }: Props, ref: Ref<Mesh>) {
+function CardMesh({ colors, isTopCard, index }: Props, ref: Ref<Mesh>) {
     const frontMaterial = useMemo(() => {
         return makeFrontShaderMaterial(colors);
     }, [colors]);
@@ -37,7 +41,18 @@ function CardMesh({ colors }: Props, ref: Ref<Mesh>) {
                 frontMaterial,
                 backShaderMaterial,
             ]}
-        />
+        >
+            <Html
+                transform
+                position={textPosition}
+                center
+                style={{ fontWeight: "bold", userSelect: "none", color: "white" }}
+                distanceFactor={4}
+                occlude
+            >
+                {index}
+            </Html>
+        </mesh>
     );
 }
 
