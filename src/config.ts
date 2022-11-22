@@ -4,7 +4,18 @@ const config = {
     startCameraPosition: new Vector3(0, 1.5, 2),
     wallSize: 20,
     cardsQuantity: 10,
-    cardColors: [0xfff8e1, 0xffecb3, 0xffe082, 0xffd54f, 0xffd54f, 0xffc107, 0xffb300, 0xffa000, 0xff8f00, 0xff6f00],
+    cardColors: [
+        [0x00ff00, 0xffff00],
+        [0x00ff00, 0x00ffff],
+        [0x00ff00, 0x0000ff],
+        [0x00ff00, 0xff00ff],
+        [0x00ff00, 0x0000ff],
+        [0xff0000, 0xffff00],
+        [0xff0000, 0x00ffff],
+        [0xff0000, 0xff00ff],
+        [0xff0000, 0x0000ff],
+        [0xff0000, 0x00ff00],
+    ],
     cardThickness: 0.005,
 };
 

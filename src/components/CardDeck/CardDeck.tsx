@@ -1,4 +1,4 @@
-import { Vector3, MeshStandardMaterial } from "three";
+import { Vector3 } from "three";
 import { useCallback, useMemo, useState } from "react";
 import { useSpring } from "react-spring";
 import CardMesh, { Card } from "./CardMesh";
@@ -7,7 +7,7 @@ import CardAnimationManager from "./CardAnimationManager";
 
 interface CardData {
     index: number;
-    frontMaterial: MeshStandardMaterial;
+    colors: number[];
 }
 
 interface CardRefs {
@@ -16,9 +16,7 @@ interface CardRefs {
 const cardsData: CardData[] = new Array(config.cardsQuantity).fill(0).map((el, index) => {
     return {
         index,
-        frontMaterial: new MeshStandardMaterial({
-            color: config.cardColors[index],
-        }),
+        colors: config.cardColors[index],
     };
 });
 
@@ -72,12 +70,8 @@ function CardDeck() {
                 isCardShowed ? hideDeck() : showCard(cardRefs[deckTopCardIndex]);
             }}
         >
-            {cardsData.map(({ index, frontMaterial }) => (
-                <CardMesh
-                    key={index}
-                    frontMaterial={frontMaterial}
-                    ref={(card: Card) => prepareCardAndAddRef(card, index)}
-                />
+            {cardsData.map(({ index, colors }) => (
+                <CardMesh key={index} colors={colors} ref={(card: Card) => prepareCardAndAddRef(card, index)} />
             ))}
         </group>
     );
