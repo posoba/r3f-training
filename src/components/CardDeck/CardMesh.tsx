@@ -1,6 +1,5 @@
 import { forwardRef, Ref, useMemo } from "react";
-import { BoxGeometry, MeshStandardMaterial, Mesh, Vector3, ShaderMaterial, Vector4 } from "three";
-import { useFrame } from "@react-three/fiber";
+import { BoxGeometry, MeshStandardMaterial, Mesh, Vector3 } from "three";
 
 import config from "../../config";
 import backShaderMaterial from "./backShaderMaterial";
