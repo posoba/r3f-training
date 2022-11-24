@@ -6,6 +6,7 @@ import reportWebVitals from "./reportWebVitals";
 
 import { Canvas } from "@react-three/fiber";
 import CameraControl from "./components/CameraControl";
+import DrawCardButton from "./components/DrawCardButton";
 
 import config from "./config";
 
@@ -20,6 +21,7 @@ root.render(
             <App />
             <CameraControl />
         </Canvas>
+        <DrawCardButton />
     </React.StrictMode>,
 );
 

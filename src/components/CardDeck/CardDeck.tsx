@@ -1,91 +1,203 @@
-import { Vector3 } from "three";
-import { useCallback, useMemo, useState } from "react";
-import { useSpring } from "react-spring";
-import CardMesh, { Card } from "./CardMesh";
-import config from "../../config";
-import CardAnimationManager from "./CardAnimationManager";
+import { Group } from "three";
+import { Component } from "react";
+import { RootState } from "@react-three/fiber";
+import { Tween } from "@tweenjs/tween.js";
 
-import PlayButton from "./PlayButton";
+import Card from "./Card";
+
+import config from "../../config";
+import { events, actions } from "../../events";
+import wait from "../../utils/wait";
+
+interface State {
+    cardsInHand: Card[];
+    cardsInDeck: Card[];
+    cardsOnTable: Card[];
+    canPlay: boolean;
+}
+
+interface Props {
+    threeState: RootState;
+    handGroup: Group;
+    tableGroup: Group;
+}
 
 interface CardData {
-    index: number;
+    id: number;
     colors: number[];
 }
 
-interface CardRefs {
-    [id: number]: Card;
-}
-const cardsData: CardData[] = new Array(config.cardsQuantity).fill(0).map((el, index) => {
-    return {
-        index,
+const cardsData = new Array(config.cardsQuantity).fill(0).map(
+    (el, index): CardData => ({
+        id: index,
         colors: config.cardColors[index],
-    };
-});
+    }),
+);
 
-const deckPosition = new Vector3(0.2, 0.006, -0.2);
+class CardDeck extends Component<Props> {
+    cardsRefs: { [id: number]: Card };
+    state: State;
 
-function CardDeck() {
-    const cardRefs: CardRefs = useMemo(() => ({}), []);
-    const springApi = useSpring({}, [])[1];
-    const cardAnimationManager = useMemo(() => new CardAnimationManager(springApi), [springApi]);
-    const [deckTopCardIndex, setDeckTopCardIndex] = useState(cardsData.length - 1);
-    const [canPlay, setCanPlay] = useState(true);
+    constructor(props: Props) {
+        super(props);
+        this.cardsRefs = {};
+        this.state = {
+            cardsInHand: [],
 
-    const prepareCardAndAddRef = useCallback(
-        (card: Card, index: number) => {
-            if (!card || cardRefs[index]) return;
-            card.rotation.x = Math.PI / 2;
-            card.rotation.z = Math.PI;
-            card.position.y = index * config.cardThickness;
-            card.index = index;
-            card.startPosition = card.position.clone();
-            card.showed = false;
-            cardRefs[index] = card;
-        },
-        [cardRefs],
-    );
+            cardsInDeck: [],
+            cardsOnTable: [],
+            canPlay: true,
+        };
+    }
 
-    const showCard = useCallback(
-        async (card: Card) => {
-            await cardAnimationManager.showCard(card);
-            card.showed = true;
-            setCanPlay(true);
-            setDeckTopCardIndex((index) => index - 1);
-        },
-        [cardAnimationManager],
-    );
+    public componentDidMount() {
+        const cardsInDeck = Object.values(this.cardsRefs);
+        cardsInDeck.forEach((card, index) => card.setPositionAndRotationInDeck(index));
+        this.setState({ cardsInDeck });
+        events.on(actions.DRAW_CARD_BUTTON_CLICKED, this.drawCard, this);
+        events.on(actions.CARD_CLICKED, this.onCardClicked, this);
+    }
 
-    const hideDeck = useCallback(async () => {
-        const cardsToHide = Object.values(cardRefs).filter((card) => card.showed);
-        await cardAnimationManager.addCardsToDeck(cardsToHide);
-        setCanPlay(true);
-        setDeckTopCardIndex(cardsData.length - 1);
-    }, [cardRefs, cardAnimationManager]);
+    public componentWillUnmount() {
+        events.off(actions.DRAW_CARD_BUTTON_CLICKED, this.drawCard, this);
+        events.off(actions.CARD_CLICKED, this.onCardClicked, this);
+    }
 
-    const onClick = useCallback(() => {
-        if (!canPlay) return;
-        setCanPlay(false);
-        const topCard = cardRefs[deckTopCardIndex];
-        topCard ? showCard(topCard) : hideDeck();
-    }, [deckTopCardIndex, cardRefs, canPlay, hideDeck, showCard]);
+    private setStateAsync(updater: any) {
+        return new Promise<void>((resolve) => {
+            this.setState(updater, resolve);
+        });
+    }
 
-    return (
-        <>
-            <group position={deckPosition}>
-                {cardsData.map(({ index, colors }) => (
-                    <CardMesh
-                        isTopCard={index === deckTopCardIndex}
-                        index={index}
-                        key={index}
+    private setCanPlay(bool: boolean) {
+        this.setState({ canPlay: bool });
+    }
+
+    private setCameraControlEnabled(bool: boolean) {
+        events.emit(actions.SET_CAMERA_CONTROL_ENABLED, bool);
+    }
+
+    private updateInHandPositions(ignoreCard?: Card) {
+        return new Promise((resolve) => {
+            const waitPromises = this.state.cardsInHand.map((el, index) =>
+                el === ignoreCard ? Promise.resolve() : el.updateInHandPosition(index, this.state.cardsInHand.length),
+            );
+            Promise.all(waitPromises).then(resolve);
+        });
+    }
+
+    private onCardClicked(card: Card) {
+        if (!this.state.canPlay) return;
+        if (this.state.cardsInDeck.includes(card)) return this.drawCard();
+        if (this.state.cardsInHand.includes(card)) return this.putCardOnTable(card);
+        this.collectCards();
+    }
+
+    private async drawCard() {
+        const card = this.state.cardsInDeck[this.state.cardsInDeck.length - 1];
+        if (!card) return;
+        this.setCanPlay(false);
+        this.setCameraControlEnabled(false);
+        await card.travelToCamera();
+        await this.setStateAsync((state: State) => ({
+            cardsInDeck: state.cardsInDeck.filter((el) => el !== card),
+            cardsInHand: [...state.cardsInHand, card],
+        }));
+        this.setCameraControlEnabled(true);
+        await wait(300);
+        this.updateInHandPositions(card);
+        await card.travelToHand(this.state.cardsInHand.length - 1, this.state.cardsInHand.length);
+        this.setCanPlay(true);
+    }
+
+    private async putCardOnTable(card: Card) {
+        if (!card) return;
+        this.setCanPlay(false);
+        this.setCameraControlEnabled(false);
+        const startPosition = card.meshRef.position.clone();
+        await this.setStateAsync((state: State) => ({
+            cardsInHand: state.cardsInHand.filter((el) => el !== card),
+            cardsOnTable: [...state.cardsOnTable, card],
+        }));
+        card.setPositionAdRotationAfterRemoveFromHand(startPosition);
+        this.updateInHandPositions();
+        await card.travelToBoard();
+        this.setCameraControlEnabled(true);
+        this.setCanPlay(true);
+    }
+
+    private async collectCards() {
+        this.setCanPlay(false);
+        await this.collectCardsAnimation();
+        const lastCard = this.state.cardsOnTable[this.state.cardsOnTable.length - 1];
+        this.state.cardsOnTable.forEach((card) => (card.meshRef.visible = false));
+        lastCard.meshRef.visible = true;
+        await lastCard.putOnDeck(this.state.cardsOnTable.length);
+        await this.setStateAsync((state: State) => ({
+            cardsInDeck: [...state.cardsInDeck, ...state.cardsOnTable.reverse()],
+            cardsOnTable: [],
+        }));
+        this.state.cardsInDeck.forEach((card, index) => {
+            card.setPositionAndRotationInDeck(index);
+            card.meshRef.visible = true;
+        });
+        this.setCanPlay(true);
+    }
+
+    private collectCardsAnimation() {
+        return new Promise((resolve) => {
+            const lastCard = this.state.cardsOnTable[this.state.cardsOnTable.length - 1];
+            const cardMesh = lastCard.meshRef;
+            const distance = cardMesh.position.x - config.collectCardsPositionX;
+
+            const onChange = ({ progress }: { progress: number }) => {
+                const positionX = config.collectCardsPositionX + (1 - progress) * distance;
+                this.state.cardsOnTable.forEach((card, index) => {
+                    if (card.meshRef.position.x >= positionX) {
+                        card.meshRef.position.x = positionX;
+                        card.meshRef.position.y = index * config.cardThickness * progress;
+                    }
+                });
+            };
+
+            new Tween({ progress: 0 })
+                .to({ progress: 1 }, this.state.cardsOnTable.length * 50)
+                .onUpdate(onChange)
+                .onComplete(() => {
+                    this.state.cardsOnTable.forEach((card) => (card.meshRef.rotation.y = 0));
+                    resolve(null);
+                })
+                .start();
+        });
+    }
+
+    public render() {
+        const { handGroup, tableGroup, threeState } = this.props;
+        const { cardsInDeck, cardsInHand, cardsOnTable, canPlay } = this.state;
+
+        return (
+            <>
+                {cardsData.map(({ colors, id }) => (
+                    <Card
+                        ref={(ref) => {
+                            if (!ref) return;
+                            this.cardsRefs[id] = ref;
+                        }}
+                        key={id}
+                        id={id}
                         colors={colors}
-                        ref={(card: Card) => prepareCardAndAddRef(card, index)}
+                        camera={threeState.camera}
+                        handGroup={handGroup}
+                        tableGroup={tableGroup}
+                        cardsInDeck={cardsInDeck}
+                        cardsInHand={cardsInHand}
+                        cardsOnTable={cardsOnTable}
+                        canPlay={canPlay}
                     />
                 ))}
-            </group>
-
-            <PlayButton onClick={onClick} />
-        </>
-    );
+            </>
+        );
+    }
 }
 
 export default CardDeck;

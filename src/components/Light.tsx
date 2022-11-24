@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import config from "../config";
@@ -7,6 +7,8 @@ import config from "../config";
 function Light() {
     const lightRef = useRef<THREE.PointLight>(null);
     const rootRef = useRef<THREE.Group & { yoyo: boolean }>(null);
+
+    const position = useMemo(() => new THREE.Vector3(0, 3, 2), []);
 
     useEffect(() => {
         lightRef.current?.shadow.mapSize.set(2048, 2048);
@@ -24,7 +26,7 @@ function Light() {
     });
 
     return (
-        <group ref={rootRef} position={new THREE.Vector3(0, 3, 2)}>
+        <group ref={rootRef} position={position}>
             <pointLight castShadow ref={lightRef} />
             <mesh>
                 <sphereGeometry args={[0.05, 32, 32]} />
