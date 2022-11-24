@@ -54,12 +54,12 @@ class CardDeck extends Component<Props> {
         const cardsInDeck = Object.values(this.cardsRefs);
         cardsInDeck.forEach((card, index) => card.setPositionAndRotationInDeck(index));
         this.setState({ cardsInDeck });
-        events.on(actions.DRAW_CARD_BUTTON_CLICKED, this.drawCard, this);
+        events.on(actions.DRAW_CARD_BUTTON_CLICKED, this.onDrawCardClicked, this);
         events.on(actions.CARD_CLICKED, this.onCardClicked, this);
     }
 
     public componentWillUnmount() {
-        events.off(actions.DRAW_CARD_BUTTON_CLICKED, this.drawCard, this);
+        events.off(actions.DRAW_CARD_BUTTON_CLICKED, this.onDrawCardClicked, this);
         events.off(actions.CARD_CLICKED, this.onCardClicked, this);
     }
 
@@ -69,8 +69,8 @@ class CardDeck extends Component<Props> {
         });
     }
 
-    private setCanPlay(bool: boolean) {
-        this.setState({ canPlay: bool });
+    private setCanPlay(bool: boolean, callback?: () => void) {
+        this.setState({ canPlay: bool }, callback);
     }
 
     private setCameraControlEnabled(bool: boolean) {
@@ -126,22 +126,24 @@ class CardDeck extends Component<Props> {
         this.setCanPlay(true);
     }
 
-    private async collectCards() {
-        this.setCanPlay(false);
-        await this.collectCardsAnimation();
-        const lastCard = this.state.cardsOnTable[this.state.cardsOnTable.length - 1];
-        this.state.cardsOnTable.forEach((card) => (card.meshRef.visible = false));
-        lastCard.meshRef.visible = true;
-        await lastCard.putOnDeck(this.state.cardsOnTable.length);
-        await this.setStateAsync((state: State) => ({
-            cardsInDeck: [...state.cardsInDeck, ...state.cardsOnTable.reverse()],
-            cardsOnTable: [],
-        }));
-        this.state.cardsInDeck.forEach((card, index) => {
-            card.setPositionAndRotationInDeck(index);
-            card.meshRef.visible = true;
+    private collectCards() {
+        return new Promise<void>(async (resolve) => {
+            this.setCanPlay(false);
+            await this.collectCardsAnimation();
+            const lastCard = this.state.cardsOnTable[this.state.cardsOnTable.length - 1];
+            this.state.cardsOnTable.forEach((card) => (card.meshRef.visible = false));
+            lastCard.meshRef.visible = true;
+            await lastCard.putOnDeck(this.state.cardsOnTable.length);
+            await this.setStateAsync((state: State) => ({
+                cardsInDeck: [...state.cardsInDeck, ...state.cardsOnTable.reverse()],
+                cardsOnTable: [],
+            }));
+            this.state.cardsInDeck.forEach((card, index) => {
+                card.setPositionAndRotationInDeck(index);
+                card.meshRef.visible = true;
+            });
+            this.setCanPlay(true, resolve);
         });
-        this.setCanPlay(true);
     }
 
     private collectCardsAnimation() {
@@ -169,6 +171,16 @@ class CardDeck extends Component<Props> {
                 })
                 .start();
         });
+    }
+
+    public async onDrawCardClicked() {
+        if (this.state.cardsInDeck.length) {
+            return this.drawCard();
+        }
+        if (this.state.cardsOnTable.length) {
+            await this.collectCards();
+            this.drawCard();
+        }
     }
 
     public render() {
