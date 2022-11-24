@@ -121,7 +121,7 @@ class CardDeck extends Component<Props> {
         }));
         card.setPositionAdRotationAfterRemoveFromHand(startPosition);
         this.updateInHandPositions();
-        await card.travelToBoard();
+        await card.travelToBoard(this.state.cardsOnTable.length);
         this.setCameraControlEnabled(true);
         this.setCanPlay(true);
     }
@@ -173,7 +173,7 @@ class CardDeck extends Component<Props> {
 
     public render() {
         const { handGroup, tableGroup, threeState } = this.props;
-        const { cardsInDeck, cardsInHand, cardsOnTable, canPlay } = this.state;
+        const { cardsInHand, canPlay } = this.state;
 
         return (
             <>
@@ -189,9 +189,7 @@ class CardDeck extends Component<Props> {
                         camera={threeState.camera}
                         handGroup={handGroup}
                         tableGroup={tableGroup}
-                        cardsInDeck={cardsInDeck}
-                        cardsInHand={cardsInHand}
-                        cardsOnTable={cardsOnTable}
+                        inHand={cardsInHand.includes(this.cardsRefs[id])}
                         canPlay={canPlay}
                     />
                 ))}

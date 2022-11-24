@@ -1,10 +1,11 @@
 import { Component } from "react";
 import { createPortal, ThreeEvent } from "@react-three/fiber";
 import { Mesh, Vector3, CubicBezierCurve3, Path, Euler, Quaternion, Group, Camera } from "three";
-import config from "../../config";
-import CardMesh from "./CardMesh";
 import { Tween } from "@tweenjs/tween.js";
 
+import CardMesh from "./CardMesh";
+
+import config from "../../config";
 import { events, actions } from "../../events";
 
 interface Props {
@@ -12,20 +13,17 @@ interface Props {
     colors: number[];
     handGroup: Group;
     tableGroup: Group;
-    cardsInDeck: Card[];
-    cardsInHand: Card[];
-    cardsOnTable: Card[];
     canPlay: boolean;
     camera: Camera;
+    inHand: boolean;
 }
 
 class Card extends Component<Props> {
     meshRef!: Mesh;
 
     private prepareMeshRef = (ref: Mesh | null) => {
-        if (ref) {
-            this.meshRef = ref;
-        }
+        if (!ref) return;
+        this.meshRef = ref;
     };
 
     public getPositionAndRotationInDeck(index: number): { position: Vector3; rotation: Euler } {
@@ -69,7 +67,7 @@ class Card extends Component<Props> {
 
         const euler = new Euler(0, 0.001, -0.05 * positionIndex);
         const addVector = new Vector3(0, -Math.abs(positionIndex * 2) * 0.005, 0).applyEuler(euler);
-        const position = new Vector3(positionIndex * 0.095, -0.22, 0);
+        const position = new Vector3(positionIndex * 0.095, -0.21, 0);
         position.add(addVector);
 
         return { position, rotation: new Quaternion().setFromEuler(euler) };
@@ -141,13 +139,13 @@ class Card extends Component<Props> {
         });
     }
 
-    public travelToBoard() {
+    public travelToBoard(cardsOnTableQuantity: number) {
         return new Promise<any>((resolve) => {
             if (!this.props.tableGroup) return resolve(null);
 
             const targetQuaternion = new Quaternion().setFromEuler(new Euler(Math.PI / 2, -Math.PI * 1.01, Math.PI));
             const currentPosition = this.meshRef.position;
-            const targetPosition = new Vector3(0.2 + this.props.cardsOnTable.length * 0.03, 0, 0);
+            const targetPosition = new Vector3(0.2 + cardsOnTableQuantity * 0.03, 0, 0);
 
             const controlPoint2 = new Vector3(
                 (currentPosition.x + targetPosition.x) * 0.25,
@@ -196,6 +194,7 @@ class Card extends Component<Props> {
 
             const onChange = ({ progress }: { progress: number }) => {
                 const diff = progress - lastProgress;
+                lastProgress = progress;
                 this.meshRef.quaternion.rotateTowards(targetQuaternion, Math.PI * diff);
                 const position = path.getPoint(progress);
                 this.meshRef.position.x = position.x;
@@ -224,14 +223,14 @@ class Card extends Component<Props> {
     public onMouseEnter = (evt: ThreeEvent<MouseEvent>) => {
         evt.stopPropagation();
         document.body.style.cursor = "pointer";
-        const addPosition = new Vector3(0, 0.05, 0.02);
+        const addPosition = new Vector3(1.2, 1.2, 1.2);
         this.toggleCardInHand(addPosition);
     };
 
     public onMouseLeave = (evt: ThreeEvent<MouseEvent>) => {
         evt.stopPropagation();
         document.body.style.cursor = "default";
-        const addPosition = new Vector3(0, 0, 0);
+        const addPosition = new Vector3(1, 1, 1);
         this.toggleCardInHand(addPosition);
     };
 
@@ -240,23 +239,15 @@ class Card extends Component<Props> {
         events.emit(actions.CARD_CLICKED, this);
     };
 
-    private toggleCardInHand(addPosition: Vector3) {
-        const { cardsInHand } = this.props;
-        if (!cardsInHand.includes(this) || !this.props.canPlay) return;
-        const { position, rotation } = this.getInHandPositionAndRotation(cardsInHand.indexOf(this), cardsInHand.length);
-        addPosition.applyQuaternion(rotation);
-        addPosition.add(position);
-
-        new Tween(this.meshRef.position.clone())
-            .to(addPosition, 50)
-            .onUpdate((pos) => this.meshRef.position.copy(pos))
-            .start();
+    private toggleCardInHand(scale: Vector3) {
+        if (!this.props.inHand || !this.props.canPlay) return;
+        new Tween(this.meshRef.scale).to(scale, 50).start();
     }
 
     public render() {
-        const { tableGroup, handGroup, cardsInHand } = this.props;
+        const { tableGroup, handGroup, inHand } = this.props;
 
-        const parent = cardsInHand.includes(this) ? handGroup : tableGroup;
+        const parent = inHand ? handGroup : tableGroup;
 
         return createPortal(
             <CardMesh
