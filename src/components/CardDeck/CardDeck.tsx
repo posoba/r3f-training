@@ -174,6 +174,7 @@ class CardDeck extends Component<Props> {
     }
 
     public async onDrawCardClicked() {
+        if (!this.state.canPlay) return;
         if (this.state.cardsInDeck.length) {
             return this.drawCard();
         }
