@@ -11,7 +11,7 @@ function Light() {
     return (
         <>
             <ambientLight intensity={0.2} />
-            <pointLight castShadow ref={lightRef} position={[0, 5, 6]} />;
+            <pointLight castShadow ref={lightRef} position={[0, 5, 6]} />
         </>
     );
 }

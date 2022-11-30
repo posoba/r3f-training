@@ -47,7 +47,6 @@ function App() {
     return (
         <Room floorTextureUrl="assets/floor.jpg" wallTextureUrl="assets/wall.jpg">
             <Light />
-
             <SlotMachine threeState={threeState} symbolMaterials={symbolMaterials} coinModel={coinModel} />
         </Room>
     );
