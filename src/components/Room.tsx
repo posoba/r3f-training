@@ -46,7 +46,11 @@ function Room({ children, floorTextureUrl, wallTextureUrl }: Props) {
 
     const makeMaterial = useCallback((texture: Texture): MeshStandardMaterial => {
         const material = new MeshStandardMaterial({ map: texture });
-        texture.repeat.set(5, 5);
+        texture.repeat.set(20, 20);
+
+        if (texture.source.data.src.includes("wall")) {
+            texture.repeat.set(5, 5);
+        }
         texture.wrapS = MirroredRepeatWrapping;
         texture.wrapT = MirroredRepeatWrapping;
         return material;

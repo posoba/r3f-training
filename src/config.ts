@@ -1,23 +1,15 @@
-import { Vector3 } from "three";
+import * as THREE from "three";
 
 const config = {
-    startCameraPosition: new Vector3(0, 1.5, 2),
-    wallSize: 20,
-    cardsQuantity: 10,
-    collectCardsPositionX: 0.2,
-    cardColors: [
-        [0x00ff00, 0xffff00],
-        [0x00ff00, 0x00ffff],
-        [0x00ff00, 0x0000ff],
-        [0x00ff00, 0xff00ff],
-        [0x00ff00, 0x0000ff],
-        [0xff0000, 0xffff00],
-        [0xff0000, 0x00ffff],
-        [0xff0000, 0xff00ff],
-        [0xff0000, 0x0000ff],
-        [0xff0000, 0x00ff00],
-    ],
-    cardThickness: 0.005,
+    startCameraPosition: new THREE.Vector3(0, 5, 8),
+    wallSize: 100,
+    reels: 5,
+    slotSize: 1,
+    slotsInReel: 16, // must be even
+    symbols: ["SYM01", "SYM02", "SYM03", "SYM04", "SYM05", "SYM06"],
+    symbolsPath: "/assets/symbols/",
+    reelsQuantity: 5,
+    gapBetweenSlotsMultiply: 1.01,
 };
 
 export default config;

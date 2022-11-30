@@ -1,20 +1,22 @@
-import { useEffect, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo } from "react";
+import { useFrame, useThree, useLoader } from "@react-three/fiber";
 import { update } from "@tweenjs/tween.js";
-import { Group } from "three";
-
+import { useTexture } from "@react-three/drei";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import * as THREE from "three";
 import Room from "./components/Room";
-import Table from "./components/Table";
 import Light from "./components/Light";
-import Hand from "./components/Hand";
-import CardDeck from "./components/CardDeck";
+import SlotMachine from "./SlotMachine";
 
 import { events, actions } from "./events";
+import config from "./config";
+
+export interface SymbolMaterials {
+    [key: string]: THREE.MeshStandardMaterial;
+}
 
 function App() {
     const threeState = useThree();
-    const handGroupRef = useRef<Group>(null);
-    const tableGroupRef = useRef<Group>(null);
 
     useFrame((state, delta) => {
         update(state.clock.oldTime);
@@ -25,14 +27,28 @@ function App() {
         threeState.scene.add(threeState.camera);
     }, [threeState]);
 
+    const symbolTextures = useTexture(config.symbols.map((name) => config.symbolsPath + name + ".png"));
+    const symbolMaterials = useMemo(() => {
+        const materials: SymbolMaterials = {};
+        config.symbols.forEach((name, index) => {
+            const texture = symbolTextures[index];
+            texture.center.set(0.5, 0.5);
+            texture.rotation = -Math.PI / 4;
+            texture.repeat.set(1.5, 1.5);
+            texture.encoding = THREE.sRGBEncoding;
+            const material = new THREE.MeshStandardMaterial({ map: texture });
+            materials[name] = material;
+        });
+        return materials;
+    }, [symbolTextures]);
+
+    const coinModel = useLoader(GLTFLoader, "assets/coin.glb");
+
     return (
         <Room floorTextureUrl="assets/floor.jpg" wallTextureUrl="assets/wall.jpg">
             <Light />
-            <Table ref={tableGroupRef} />
-            <Hand ref={handGroupRef} />
-            {handGroupRef.current && tableGroupRef.current && (
-                <CardDeck threeState={threeState} handGroup={handGroupRef.current} tableGroup={tableGroupRef.current} />
-            )}
+
+            <SlotMachine threeState={threeState} symbolMaterials={symbolMaterials} coinModel={coinModel} />
         </Room>
     );
 }
